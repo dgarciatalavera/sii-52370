@@ -1,0 +1,7 @@
+# Carpeta de compilacion de CMake
+workspace/build/
+
+# Archivos objeto y ejecutables generados
+*.o
+*.out
+tenis

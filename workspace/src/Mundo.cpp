@@ -115,6 +115,7 @@ void CMundo::OnDraw()
 
 void CMundo::OnTimer(int value)
 {	
+	printf("OnTimer ejecutandose... Esfera pos actual: x=%.2f, y=%.2f\n", esfera.centro.x, esfera.centro.y);
 	jugador1.Mueve(0.025f);
 	jugador2.Mueve(0.025f);
 	esfera.Mueve(0.025f);
