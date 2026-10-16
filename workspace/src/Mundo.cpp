@@ -10,6 +10,12 @@
 #include <string.h>
 #include <math.h>
 
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -21,7 +27,9 @@ CMundo::CMundo()
 
 CMundo::~CMundo()
 {
-
+    if (fd_fifo != -1) { 
+        close(fd_fifo);
+    }
 }
 
 void CMundo::InitGL()
@@ -115,6 +123,7 @@ void CMundo::OnDraw()
 
 void CMundo::OnTimer(int value)
 {	
+        char buffer[256];
 	jugador1.Mueve(0.025f);
 	jugador2.Mueve(0.025f);
 	esfera.Mueve(0.025f);
@@ -135,6 +144,23 @@ void CMundo::OnTimer(int value)
 		esfera.velocidad.x=2+2*rand()/(float)RAND_MAX;
 		esfera.velocidad.y=2+2*rand()/(float)RAND_MAX;
 		puntos2++;
+		
+		
+		printf("TENIS: Intento escribir punto 2. fd_fifo=%d\n", fd_fifo);
+    fflush(stdout);
+    
+		if (fd_fifo != -1) {
+                  snprintf(buffer, sizeof(buffer), "Jugador 2 marca 1 punto, lleva un total de %d puntos.\n", puntos2);
+                  write(fd_fifo, buffer, strlen(buffer));
+                  fsync(fd_fifo);
+                }
+                
+                if (puntos2 >= 3) {
+                    if (fd_fifo != -1) {
+                        close(fd_fifo); // Cierre explícito de la FIFO antes de salir
+                    }
+                    exit(0); // Finaliza la ejecución del juego
+                }
 	}
 
 	if(fondo_dcho.Rebota(esfera))
@@ -144,6 +170,20 @@ void CMundo::OnTimer(int value)
 		esfera.velocidad.x=-2-2*rand()/(float)RAND_MAX;
 		esfera.velocidad.y=-2-2*rand()/(float)RAND_MAX;
 		puntos1++;
+		
+		if (fd_fifo != -1) {
+                  snprintf(buffer, sizeof(buffer), "Jugador 1 marca 1 punto, lleva un total de %d puntos.\n", puntos1);
+                  write(fd_fifo, buffer, strlen(buffer));
+                  fsync(fd_fifo);
+                }
+                
+                // Comprobación de fin de partida
+                if (puntos1 >= 3) {
+                    if (fd_fifo != -1) {
+                        close(fd_fifo); // Cierre explícito de la FIFO antes de salir
+                    }
+                exit(0); // Finaliza la ejecución del juego
+                }
 	}
 
 }
@@ -192,4 +232,17 @@ void CMundo::Init()
 	jugador2.g=0;
 	jugador2.x1=6;jugador2.y1=-1;
 	jugador2.x2=6;jugador2.y2=1;
+	
+	
+	//Puntos FIFO
+	puntos1 = 0;
+	puntos2 = 0;
+
+	fd_fifo = open("/tmp/fifotenis", O_WRONLY);
+	if (fd_fifo == -1) {
+		perror("ERROR al abrir FIFO en tenis");
+	} else {
+		printf("TENIS: FIFO abierta correctamente (fd=%d)\n", fd_fifo);
+		fflush(stdout);
+	}
 }
